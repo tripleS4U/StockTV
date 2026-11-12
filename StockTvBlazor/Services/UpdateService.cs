@@ -16,7 +16,8 @@ public record UpdateCheckResult(string CurrentVersion, string? LatestVersion, bo
 /// </summary>
 public class UpdateService
 {
-	private const string GitHubReleaseUrl = "https://api.github.com/repos/Trawacho/StockTV/releases/latest";
+	// Repository kommt aus dem Build (ReleaseQuelle) - ein Fork prueft gegen seine eigenen Releases.
+	private static string GitHubReleaseUrl => ReleaseQuelle.LatestReleaseApiUrl;
 	private const string HttpClientName = "GitHub";
 	private const string UpdateScriptPath = "/usr/local/sbin/stocktv-run-update.sh";
 	private const string OfflineUpdateScriptPath = "/usr/local/sbin/stocktv-run-offline-update.sh";

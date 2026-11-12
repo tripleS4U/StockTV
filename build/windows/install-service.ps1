@@ -23,6 +23,9 @@
 #    .\install-service.ps1 -Download -ApiKey "eigener-schluessel"
 #    .\install-service.ps1 -Download -GenerateApiKey
 #
+#  Releases aus einem anderen Repository (z.B. einem Fork) laden:
+#    .\install-service.ps1 -Download -Repo "besitzer/StockTV"
+#
 #  Deinstallieren:
 #    .\install-service.ps1 -Uninstall
 # ============================================
@@ -47,10 +50,16 @@ param(
     [string]$ApiKey      = "Secret4StockTV?",
     [switch]$GenerateApiKey,            # Statt des vorbelegten einen zufaelligen Schluessel erzeugen
 
+    # Quelle der Releases fuer -Download (besitzer/repository), z.B. fuer einen Fork.
+    # Die Release-Pipeline setzt den Standard im Paket auf das Repository, aus dem gebaut wurde.
+    [ValidatePattern('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$')]
+    [string]$Repo        = "Trawacho/StockTV",
+
     [switch]$Uninstall
 )
 
-$REPO            = "Trawacho/StockTV"
+# $REPO (unten verwendet) ist dieselbe Variable wie der Parameter $Repo - PowerShell unterscheidet
+# bei Variablennamen nicht zwischen Gross- und Kleinschreibung.
 $REST_API_PORT   = 8098
 $ASSET_NAME      = "stocktv-windows-x64.zip"
 $KIOSK_TASK      = "StockTV Kiosk"

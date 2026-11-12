@@ -16,7 +16,14 @@
 
 set -e
 
-REPO="Trawacho/StockTV"
+# Quelle der Releases (besitzer/repository). Ein Fork setzt STOCKTV_REPO, z.B.
+#    curl -sSL https://raw.githubusercontent.com/<besitzer>/StockTV/main/<pfad> | STOCKTV_REPO=<besitzer>/StockTV bash
+REPO="${STOCKTV_REPO:-Trawacho/StockTV}"
+# Der Wert landet im als root laufenden Update-Skript - nur "besitzer/name" zulassen.
+if ! [[ "$REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+    echo "Fehler: STOCKTV_REPO muss die Form besitzer/repository haben (ist: $REPO)" >&2
+    exit 1
+fi
 ASSET_NAME="stocktv-linux-x64.zip"
 INSTALL_DIR="/opt/stocktv"
 SERVICE_NAME="stocktv"

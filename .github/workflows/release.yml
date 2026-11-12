@@ -18,6 +18,11 @@ permissions:
   actions: write
   packages: write
 
+# Releases eines Forks verweisen auf den Fork: App (Update-Pruefung), Image und Installer im Paket
+# bekommen das Repository, aus dem gebaut wird.
+env:
+  STOCKTV_REPO: ${{ github.repository }}
+
 jobs:
 
   # -------------------------------------------------------
@@ -71,13 +76,20 @@ jobs:
             --runtime win-x64 `
             --self-contained `
             --output build/windows/publish `
-            -p:UseAppHost=true
+            -p:UseAppHost=true `
+            -p:StockTvRepository=${{ env.STOCKTV_REPO }}
 
       - name: Setup-Skripte ins Paket aufnehmen
         run: |
           Copy-Item "build/windows/install-service.ps1"  "build/windows/publish/install-service.ps1"  -Force
           Copy-Item "build/windows/start-kiosk.ps1"      "build/windows/publish/start-kiosk.ps1"      -Force
           Copy-Item "build/windows/start-kiosk-dual.ps1" "build/windows/publish/start-kiosk-dual.ps1" -Force
+          # -Download im Paket laedt aus dem Repository, aus dem gebaut wurde (Fork statt Original).
+          $skript = "build/windows/publish/install-service.ps1"
+          $inhalt = [IO.File]::ReadAllText($skript)
+          $neu = $inhalt -replace '(\[string\]\$Repo\s*=\s*)"[^"]*"', "`$1""$env:STOCKTV_REPO"""
+          if ($neu -eq $inhalt -and $env:STOCKTV_REPO -ne "Trawacho/StockTV") { throw "Standard-Repository in install-service.ps1 nicht gefunden" }
+          [IO.File]::WriteAllText($skript, $neu)
 
       - name: Release-Zip erstellen
         run: Compress-Archive -Path "build/windows/publish/*" -DestinationPath "build/windows/stocktv-windows-x64.zip"
@@ -112,7 +124,8 @@ jobs:
             --runtime linux-x64 \
             --self-contained \
             --output build/linux/publish \
-            -p:UseAppHost=true
+            -p:UseAppHost=true \
+            -p:StockTvRepository=${{ env.STOCKTV_REPO }}
 
       - name: Release-Zip erstellen
         run: |
@@ -149,7 +162,8 @@ jobs:
             --runtime linux-arm64 \
             --self-contained \
             --output build/rpi/publish \
-            -p:UseAppHost=true
+            -p:UseAppHost=true \
+            -p:StockTvRepository=${{ env.STOCKTV_REPO }}
 
       - name: Image-Builder Abhaengigkeiten installieren
         run: |
@@ -169,7 +183,7 @@ jobs:
           STOCKTV_VERSION: ${{ needs.version.outputs.version }}
         run: |
           chmod +x build/rpi/build-image.sh
-          sudo --preserve-env=STOCKTV_VERSION bash build/rpi/build-image.sh
+          sudo --preserve-env=STOCKTV_VERSION,STOCKTV_REPO bash build/rpi/build-image.sh
 
       - name: Image-Pfad ermitteln
         id: img
@@ -228,7 +242,7 @@ jobs:
             | `stocktv-windows-x64.zip` | Installationspaket für Windows (x64), läuft als Windows-Dienst |
             | `stocktv-linux-x64.zip` | Installationspaket für Linux (x64), läuft als systemd-Dienst |
 
-            Installationsanleitung: [INSTALL.md](https://github.com/Trawacho/StockTV/blob/main/INSTALL.md)
+            Installationsanleitung: [INSTALL.md](https://github.com/${{ github.repository }}/blob/main/INSTALL.md)
 
           files: |
             artifacts/rpi-image/*.img.xz
