@@ -1,17 +1,18 @@
 @page "/bestof"
 @rendermode InteractiveServer
+@inherits MirrorableGamePageBase<BestOfViewModel>
 
 <PageTitle>BestOf</PageTitle>
 
 <div class="page-fullscreen" @onkeydown="HandleGlobalKeyDown" tabindex="0" style="outline:none; @ViewModel.GetTableLayoutCssVariables() @ViewModel.GetCellFontWeightCssVariables()" @ref="inputRef">
-	<div class="scoreboard-shell" style="@ViewModel.GetShellGridStyle()">
+	<div class="scoreboard-shell @MirrorClass" style="@ViewModel.GetShellGridStyle()">
 		@if (TeamNamesAvailable)
 		{
 			<div class="teamname teamname-left @ViewModel.GetTeamFrameClass(ViewModel.LeftTeamName)"><AutoFitText Text="@ViewModel.GetCleanTeamName(ViewModel.LeftTeamName)" Min="8" Vertical="true" /></div>
 		}
 
 		<div class="scoreboard-center">
-			<div class="score-row score-top-row header-text"><AutoFitText Text="@ViewModel.HeaderText" Min="6" /></div>
+			<div class="score-row score-top-row header-text"><AutoFitText Text="@Kopf(ViewModel.HeaderText)" Min="6" /></div>
 
 			<div class="score-row bestof-mid-grid">
 				<div class="score-cell left-point-sum"><AutoFitText Text="@ViewModel.LeftPointsSum.ToString()" Min="12" Numeric="true" Fill="98" MinLen="2" /></div>

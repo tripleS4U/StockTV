@@ -86,6 +86,14 @@ sudo STOCKTV_VERSION=v0.1 bash build-image.sh
 - SSH-User: `pi` / Passwort: `stocktv`
 - Hostname: `stocktv`
 - Web-UI nach dem Start: `http://<ip>:8080`
+- REST-Schnittstelle: `http://<ip>:8098/swagger`, API-Schlüssel `Secret4StockTV?` (für alle
+  Geräte aus dem Image gleich; eigener mit `sudo STOCKTV_API_KEY="…" bash build-image.sh`)
+
+**Konfiguration:** `/opt/stocktv/_config/` enthält drei Dateien — `stocktv.device.json` (Gerät,
+enthält den API-Schlüssel der REST-Schnittstelle auf Port 8098), `stocktv.config.json` (Betrieb)
+und `stocktv.state.json` (laufender Spielstand, überlebt einen Neustart bis zu 12 Stunden). Eine
+alte Einzeldatei wird beim ersten Start automatisch aufgeteilt. Details in
+[INSTALL.md](../../INSTALL.md#konfigurationsdateien).
 
 ---
 
@@ -104,6 +112,16 @@ curl -sSL https://raw.githubusercontent.com/Trawacho/StockTV/main/build/rpi/inst
 chmod +x install.sh && ./install.sh
 ```
 
+**API-Schlüssel der REST-Schnittstelle (Port 8098):** Bei einer neuen Gerätedatei trägt das
+Skript `Secret4StockTV?` ein — auf allen so eingerichteten Geräten gleich. Eigener bzw.
+zufälliger Schlüssel (gilt genauso für `install-dual.sh`):
+```bash
+curl -sSL https://raw.githubusercontent.com/Trawacho/StockTV/main/build/rpi/install.sh | bash -s -- --api-key "eigener-schluessel"
+curl -sSL https://raw.githubusercontent.com/Trawacho/StockTV/main/build/rpi/install.sh | bash -s -- --generate-api-key
+```
+Eine vorhandene `stocktv.device.json` bleibt bei Updates unverändert. Details in
+[INSTALL.md](../../INSTALL.md#fernsteuerung-über-die-rest-schnittstelle).
+
 **Was das Skript macht:**
 - Prüft ARM64-Architektur
 - Installiert benötigte System-Bibliotheken (`libicu-dev`, `libssl3`, `zlib1g`)
@@ -119,9 +137,20 @@ Das Skript fragt beim ersten Aufruf ob Autologin + Chromium eingerichtet werden 
 Bei Bestätigung werden installiert/konfiguriert: `xserver-xorg`, `xinit`, `openbox`,
 `chromium`, autologin-Drop-in für `getty@tty1`, `~/.bash_profile`, `~/.xinitrc`.
 
+Für **zwei Bildschirme** gibt es [install-dual.sh](install-dual.sh) — sonst identisch. Dessen
+`.xinitrc` ordnet beide HDMI-Ausgänge per `xrandr` nebeneinander an und startet auf dem zweiten
+Bildschirm ein zweites Chromium-Fenster mit `http://localhost:8080/display2`: die spiegelverkehrte
+Anzeige für die gegenüberliegende Bahnseite (nur Anzeige, keine Eingabe). Dafür wird zusätzlich
+`wmctrl` installiert — beide Fenster werden nach dem Start per WM_CLASS (`StockTV-Main` /
+`StockTV-Mirror`) exakt auf ihren Ausgang gesetzt und der Fokus gezielt auf das Bedienfenster
+gelegt.
+
 Der gewählte Zustand wird in `/opt/stocktv/.kiosk` gespeichert:
 - **Kiosk aktiv:** beim Update automatisch geprüft und ggf. korrigiert, keine Rückfrage
 - **Kiosk inaktiv:** beim Update erneut gefragt (Nachholung möglich)
+- **Zwei Bildschirme:** zusätzlich `/opt/stocktv/.kiosk-dual`. Ein Update mit `install.sh` fragt
+  dann nach, statt still auf einen Bildschirm zurückzustellen — für Updates weiter
+  `install-dual.sh` verwenden.
 
 **Eignet sich für:**
 - Erstinstallation auf einem frischen Raspberry Pi OS

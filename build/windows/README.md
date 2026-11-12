@@ -57,6 +57,12 @@ Ausgabe: `build/windows/publish/` + `build/windows/stocktv-windows-x64.zip`
 .\install-service.ps1 -Download -InstallDir "D:\StockTV" -Port 8080
 ```
 
+**Eigener bzw. zufälliger API-Schlüssel für die REST-Schnittstelle:**
+```powershell
+.\install-service.ps1 -Download -ApiKey "eigener-schluessel"
+.\install-service.ps1 -Download -GenerateApiKey
+```
+
 **Dienst deinstallieren:**
 ```powershell
 .\install-service.ps1 -Uninstall
@@ -72,6 +78,8 @@ Ausgabe: `build/windows/publish/` + `build/windows/stocktv-windows-x64.zip`
 | `-InstallDir`  | `C:\StockTV` | Zielverzeichnis |
 | `-ServiceName` | `StockTV`    | Name des Windows-Dienstes |
 | `-Port`        | `8080`       | HTTP-Port |
+| `-ApiKey`      | `Secret4StockTV?` | Schlüssel der REST-Schnittstelle (Port 8098) — nur bei neuer Gerätedatei |
+| `-GenerateApiKey` | *(Switch)* | Zufälligen Schlüssel statt des vorbelegten erzeugen |
 | `-Uninstall`   | *(Switch)*   | Dienst + Kiosk-Task stoppen und löschen |
 
 **Hinweis:** Das Skript erhöht die Rechte automatisch (UAC-Prompt), falls es nicht als Administrator gestartet wurde.
@@ -132,8 +140,16 @@ jede Browserleiste (`--kiosk`). Ideal für TV-Displays, auf denen kein manueller
 - Autologin in der Registry — der Kiosk-Benutzer meldet sich nach jedem Reboot automatisch an
 - `C:\StockTV\start-kiosk.ps1` — wartet bis der StockTV-Dienst erreichbar ist, startet dann den Browser
 - `C:\StockTV\kiosk-profile\` — Browser-Profil mit deaktivierten Übersetzungs- und Benachrichtigungs-Dialogen
+- `C:\StockTV\start-kiosk-dual.ps1` — Variante für zwei Bildschirme; wird bei `-DualDisplay`
+  über `start-kiosk.ps1` gelegt, sodass Portersetzung und Scheduled Task unverändert greifen.
+  Sie öffnet auf dem zweiten Bildschirm zusätzlich `http://localhost:8080/display2` mit eigenem
+  Profil `kiosk-profile-mirror` — die spiegelverkehrte Anzeige für die gegenüberliegende
+  Bahnseite (nur Anzeige, keine Eingabe). Voraussetzung: Anzeigemodus „Erweitern" statt
+  „Duplizieren".
 - Windows Scheduled Task `StockTV Kiosk` — führt das Skript bei Anmeldung jedes Benutzers aus (Gruppe `Users`)
 - Sentinel-Datei `C:\StockTV\.kiosk` — merkt sich, dass Kiosk aktiv ist; bei Updates wird er automatisch neu eingerichtet
+- Sentinel-Datei `C:\StockTV\.kiosk-dual` — merkt sich die Zwei-Bildschirm-Variante; Updates behalten
+  sie bei, Zurückstellen ausdrücklich mit `-DualDisplay:$false`
 
 **Unterstützte Browser** (in dieser Reihenfolge gesucht): Microsoft Edge, Google Chrome.
 
@@ -141,6 +157,12 @@ jede Browserleiste (`--kiosk`). Ideal für TV-Displays, auf denen kein manueller
 
 ```powershell
 .\install-service.ps1 -Kiosk
+```
+
+**Zwei Bildschirme:**
+
+```powershell
+.\install-service.ps1 -Download -Kiosk -DualDisplay
 ```
 
 **Kiosk deaktivieren** (ohne Dienst zu entfernen): Task manuell löschen und `.kiosk` entfernen, oder:
@@ -175,6 +197,15 @@ Get-EventLog -LogName Application -Source StockTV -Newest 20
 ## Hinweise
 
 - StockTV läuft auf Port **8080** (HTTP). HTTPS ist nicht konfiguriert.
-- Konfiguration liegt in `C:\StockTV\_config\stocktv.config.json`.
+- Die REST-Schnittstelle auf Port **8098** startet nur, wenn in `stocktv.device.json` ein
+  API-Schlüssel eingetragen ist (oder `BindAddress` auf `127.0.0.1` steht). Das Skript legt die
+  Datei bei der Erstinstallation mit Schlüssel an (vorbelegt `Secret4StockTV?`, auf allen so
+  eingerichteten Geräten gleich) und gibt den Port 8098 in der Firewall frei. Eine vorhandene
+  Datei bleibt bei Updates unverändert. Details in
+  [INSTALL.md](../../INSTALL.md#fernsteuerung-über-die-rest-schnittstelle).
+- Konfiguration liegt in `C:\StockTV\_config\` — drei Dateien: `stocktv.device.json` (Gerät,
+  enthält den API-Schlüssel), `stocktv.config.json` (Betrieb) und `stocktv.state.json`
+  (laufender Spielstand). Eine alte Einzeldatei wird beim ersten Start automatisch aufgeteilt.
+  Details in [INSTALL.md](../../INSTALL.md#konfigurationsdateien).
 - Der Dienst startet automatisch mit Windows.
 - `UseWindowsService()` ist in `Program.cs` aktiv — auf Nicht-Windows-Systemen oder bei direktem Start als Konsolen-App hat das keinen Einfluss.

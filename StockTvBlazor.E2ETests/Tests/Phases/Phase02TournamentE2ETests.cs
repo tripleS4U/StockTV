@@ -1,4 +1,4 @@
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 using StockTvBlazor.E2ETests.Fixtures;
 using StockTvBlazor.E2ETests.Helpers;
 using Xunit;
@@ -7,9 +7,9 @@ using Xunit.Abstractions;
 namespace StockTvBlazor.E2ETests.Tests.Phases;
 
 [Collection("E2E Sequential")]
-public class Phase2TournamentE2ETests : PhaseTestBase
+public class Phase02TournamentE2ETests : PhaseTestBase
 {
-	public Phase2TournamentE2ETests(AppFixture fixture, ITestOutputHelper output)
+	public Phase02TournamentE2ETests(AppFixture fixture, ITestOutputHelper output)
 		: base(fixture, output)
 	{
 	}
@@ -186,14 +186,15 @@ public class Phase2TournamentE2ETests : PhaseTestBase
 
 			await PressKeyAsync("+", $"Spiel {game}/{numberOfGames} abgeschlossen mit Taste '+'");
 		}
-
-		// Im nächsten Spiel (das nicht existiert) sollten keine Team-Namen angezeigt werden
-		int expectedNextGame = numberOfGames + 1;
+		// Nach dem letzten Spiel legt StockTV ein leeres Spiel ohne Begegnung an: keine Team-Namen, und im Kopf steht
+		// „alle Spiele beendet“ statt „Spiel 4“.
 		await ValidateDisplayAsync(
-			expectedGameNumber: expectedNextGame,
+			expectedGameNumber: null,
 			expectedTurnNumber: null,
 			expectedTeamLeft: null,
 			expectedTeamRight: null);
+		var kopf = await Fixture.Page.Locator(".score-row.header-text").TextContentAsync();
+		Assert.Contains("alle Spiele beendet", kopf);
 
 		Log(CurrentPhase, $"Sende ResetResult an Server nach Abschluss aller Spiele...");
 		Fixture.SendNetMqCommand("ResetResult");

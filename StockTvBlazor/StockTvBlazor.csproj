@@ -5,8 +5,19 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-    <Version>1.9.1.0</Version>
+    <Version>1.10.0.0</Version>
+    <!-- Die XML-Kommentare werden von Swagger als Beschreibung der Endpunkte angezeigt.
+         1591 aus: fuer die Blazor- und Settings-Klassen sind sie nicht gefordert. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <!-- Quelle der Releases fuer die Update-Pruefung (besitzer/repository). Die Release-Pipeline
+         setzt -p:StockTvRepository=${{ github.repository }}, ein Fork bekommt so seine eigenen Updates. -->
+    <StockTvRepository Condition="'$(StockTvRepository)' == ''">Trawacho/StockTV</StockTvRepository>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="StockTvRepository" Value="$(StockTvRepository)" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="Services\LoggingServices.cs" />
@@ -14,8 +25,26 @@
 
   <ItemGroup>
     <PackageReference Include="Makaretu.Dns.Multicast" Version="0.27.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.0" />
-    <PackageReference Include="NetMQ" Version="4.0.2.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.13" />
+    <PackageReference Include="NetMQ" Version="4.0.4.4" />
+    <!-- Swagger-UI liegt als eingebettete Ressource im Paket - laeuft damit auch auf einem
+         Pi ohne Internetzugang. -->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.0" />
   </ItemGroup>
+
+  <!-- Entwicklung: Ohne Geraetedatei laeuft StockTV mit Standardwerten (BindAddress 0.0.0.0,
+       kein Schluessel), und die REST-Schnittstelle startet nicht. Im Debug-Build deshalb eine
+       Geraetedatei mitgeben, die nur auf 127.0.0.1 lauscht - dort ist kein Schluessel noetig.
+       Nur wenn noch keine da ist: eine eigene (z.B. mit Schluessel und 0.0.0.0) bleibt stehen.
+       Nicht als Content: sonst landete die Datei im Release-Paket. -->
+  <ItemGroup>
+    <Content Remove="_config.dev\**" />
+    <None Include="_config.dev\**" />
+  </ItemGroup>
+
+  <Target Name="CopyDevDeviceConfig" AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Debug' And !Exists('$(OutDir)_config\stocktv.device.json')">
+    <Copy SourceFiles="_config.dev\stocktv.device.json" DestinationFolder="$(OutDir)_config" />
+  </Target>
 
 </Project>

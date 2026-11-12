@@ -65,6 +65,7 @@ Bestanden: 28, Übersprungen: 0, Dauer: ~9–11 Min
 - ✅ .NET 10.0 SDK
 - ✅ Playwright Chromium (in `bin/Debug/net10.0/`)
 - ✅ Ports frei: 5001 (HTTP), 4747/4748 (NetMQ)
+  - ⚠️ Es darf keine andere StockTV-Instanz laufen (z.B. Docker-Container `stocktvbahn1`, lokal gestartete App). Die Tests sprechen NetMQ fest über 4747/4748 an; eine laufende Instanz würde die Nachrichten abfangen, die Tests schlagen dann mit scheinbar zufälligen Settings-Fehlern fehl (z.B. `Expected: 0, Actual: 1`). Die `AppFixture` prüft das vor dem Start und bricht mit einer klaren Meldung ab. Prüfen mit `docker ps`, stoppen mit `docker stop <name>`.
 
 ### Initial Setup
 ```powershell
@@ -135,6 +136,7 @@ dotnet test StockTvBlazor.E2ETests/
 - Team-Namen beim Spiel-Start sichtbar
 - Punkte-Anzeige aktualisiert sich nach jedem Input
 - Spiel 1 → Spiel 2 → Spiel 3 Progression
+- Nach dem letzten Spiel: keine Team-Namen, Kopf zeigt „alle Spiele beendet“
 
 **Beispiel-Log:**
 ```
@@ -201,8 +203,8 @@ dotnet test StockTvBlazor.E2ETests/
 - Invalid overlay wird angezeigt und verschwindet nach 1,5s
 - Disziplin-Übergänge funktionieren automatisch
 - Finale Seite lädt erfolgreich
-- `ziel-state.json` Persistierung: Alle Versuche pro Disziplin korrekt gespeichert
-- `ResetResult` NetMQ-Kommando: `ziel-state.json` wird korrekt gelöscht
+- `stocktv.state.json` Persistierung (Abschnitt `Ziel`): Alle Versuche pro Disziplin korrekt gespeichert
+- `ResetResult` NetMQ-Kommando: Abschnitt `Ziel` in `stocktv.state.json` wird geleert (die Datei selbst wird nur entfernt, wenn auch `Match` leer ist)
 
 **Dauer:** ~30–40s
 
@@ -226,7 +228,7 @@ dotnet test StockTvBlazor.E2ETests/
 **Validierung:**
 - Ungültiger Versuch löst korrekt ungültig-Overlay aus
 - UI bleibt responsive über alle 48 Versuche hinweg
-- `ziel-state.json` Persistierung: Alle Versuche pro Disziplin korrekt gespeichert
+- `stocktv.state.json` Persistierung (Abschnitt `Ziel`): Alle Versuche pro Disziplin korrekt gespeichert
 
 **Dauer:** ~60–80s
 
@@ -251,7 +253,7 @@ dotnet test StockTvBlazor.E2ETests/
 - Automatischer Übergang zwischen Runden
 - Ungültige Versuche in beiden Runden funktionieren
 - Finale Seite mit Gesamtsumme korrekt
-- `ziel-state.json` Persistierung: Runde1 Versuche, Rundenwechsel, Runde 2 Versuche + Runde1Summe korrekt persistiert
+- `stocktv.state.json` Persistierung (Abschnitt `Ziel`): Runde1 Versuche, Rundenwechsel (`Durchgang`), Runde 2 Versuche + `Runde1Summe` korrekt persistiert
 
 **Dauer:** ~60–80s
 
@@ -780,6 +782,16 @@ Alle drei Phasen sind grün und in Produktion. Siehe [Phase 4](#-phase-4-ziel--6
 - Debounce-Timeout: 1100ms — bei schnellen Tests `await Task.Delay(1200)` nutzen
 - Logs in `TestResults/e2e-test-*.log` prüfen
 
+### ❌ Phase 13/14 schlagen fehl: Subscriber trennen hat keine Wirkung
+
+Auf dem Rechner läuft **StockApp.UI.exe** (zentrale Verwaltung). Sie findet die Test-Instanz per mDNS
+und verbindet sich auf 4747/4748 als zusätzlicher Abonnent. Die App sperrt lokale Eingaben
+(`BlockLocalChanges`), solange mindestens ein Abonnent verbunden ist — der Test trennt aber nur
+seinen eigenen. Folge: in Phase 13 wird `.display` nie `clickable`, in Phase 14 fehlt der Team-Button.
+
+**Lösung:** StockApp vor dem Testlauf beenden. Kontrolle: `netstat -ano | findstr ":4748"` darf nur
+Verbindungen von `127.0.0.1` zeigen.
+
 ### ❌ "Playwright executable doesn't exist"
 
 ```powershell
@@ -791,7 +803,7 @@ cd StockTvBlazor.E2ETests\bin\Debug\net10.0
 
 ## ✅ Checkliste vor Tests
 
-- [ ] Keine StockTV Prozesse laufen
+- [ ] Keine StockTV Prozesse laufen (auch **StockApp.UI.exe** nicht, siehe Troubleshooting)
 - [ ] Ports 5001, 4747, 4748 frei
 - [ ] .NET 10.0 SDK installiert
 - [ ] `dotnet restore` ausgeführt

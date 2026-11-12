@@ -4,7 +4,7 @@ using StockTvBlazor.Settings;
 
 namespace StockTvBlazor.Components.ViewModels;
 
-public abstract class BaseViewModel : IDisposable
+public abstract class BaseViewModel : IPageViewModel
 {
 	protected readonly SettingsService _settingsService;
 
@@ -58,6 +58,17 @@ public abstract class BaseViewModel : IDisposable
 		}
 	}
 
+	/// <summary>Die Kehre, die gerade gespielt wird: eingetragene Kehren + 1, höchstens die letzte Kehre des Spiels.</summary>
+	protected int LaufendeKehre
+	{
+		get
+		{
+			var laufend = CurrentMatch.CurrentGame.Turns.Count + 1;
+			var max = _settingsService.CurrentSettings.Game.MaxKehrenProSpiel;
+			return max > 0 ? Math.Min(laufend, max) : laufend;
+		}
+	}
+
 	#endregion
 
 	#region Points
@@ -106,34 +117,18 @@ public abstract class BaseViewModel : IDisposable
 
 	public bool TeamNamesAvailable => _isDemoMode || !string.IsNullOrEmpty(LeftTeamName);
 
-	public string LeftTeamName
+	public string LeftTeamName => _isDemoMode ? DemoData.LeftTeamName : TeamNamenFuerKehre().Links;
+
+	public string RightTeamName => _isDemoMode ? DemoData.RightTeamName : TeamNamenFuerKehre().Rechts;
+
+	/// <summary>Namen der laufenden Begegnung; die Anspiel-Markierung wechselt mit jeder Kehre die Seite.</summary>
+	private (string Links, string Rechts) TeamNamenFuerKehre()
 	{
-		get
-		{
-			if (_isDemoMode) return DemoData.LeftTeamName;
+		var begegnung = CurrentMatch.Begegnungen.FirstOrDefault(b => b.Spielnummer == CurrentMatch.CurrentGame.GameNumber);
+		if (begegnung is null) return (string.Empty, string.Empty);
 
-			var s = _settingsService.CurrentSettings;
-
-			return CurrentMatch.Begegnungen
-				.FirstOrDefault(b => b.Spielnummer == CurrentMatch.CurrentGame.GameNumber)
-				?.TeamNameLeft(s.UI.CurrentRichtung == UiSettings.Richtung.Links)
-				?? string.Empty;
-		}
-	}
-
-	public string RightTeamName
-	{
-		get
-		{
-			if (_isDemoMode) return DemoData.RightTeamName;
-
-			var s = _settingsService.CurrentSettings;
-
-			return CurrentMatch.Begegnungen
-				.FirstOrDefault(b => b.Spielnummer == CurrentMatch.CurrentGame.GameNumber)
-				?.TeamNameRight(s.UI.CurrentRichtung == UiSettings.Richtung.Links)
-				?? string.Empty;
-		}
+		var rechtsNachLinks = _settingsService.CurrentSettings.UI.CurrentRichtung == UiSettings.Richtung.Links;
+		return AnspielWechsel.FuerKehre(begegnung.TeamNameLeft(rechtsNachLinks), begegnung.TeamNameRight(rechtsNachLinks), LaufendeKehre);
 	}
 
 	#endregion
@@ -141,38 +136,35 @@ public abstract class BaseViewModel : IDisposable
 	#region Team Frame (Anspiel-Indikator)
 
 	/// <summary>
-	/// Prüft ob der Teamname mit >> oder << markiert ist (Anspiel-Indikator)
+	/// Prüft ob der Teamname mit » oder « markiert ist (Anspiel-Indikator)
 	/// </summary>
 	public bool HasAnspiel(string teamName)
 	{
-		return !string.IsNullOrEmpty(teamName) && (teamName.Contains("»") || teamName.Contains("«"));
+		return AnspielWechsel.IstMarkiert(teamName);
 	}
+
+	/// <summary>Rahmen statt Sonderzeichen - zentrale Einstellung, gilt für alle Themes.</summary>
+	private bool ShowAnspielFrame => _settingsService.CurrentSettings.UI.AnspielFrame.ShowFrame;
 
 	/// <summary>
 	/// Gibt die CSS-Klasse für den Teamrahmen zurück, wenn Anspiel vorhanden UND Rahmen aktiviert
 	/// </summary>
 	public string GetTeamFrameClass(string teamName)
 	{
-		var activeTheme = _settingsService.CurrentSettings.UI.ActiveTheme;
-		var showFrame = activeTheme is CustomTheme customTheme && customTheme.ShowFrameOnAnspiel;
-
-		return HasAnspiel(teamName) && showFrame ? "team-has-anspiel" : "";
+		return HasAnspiel(teamName) && ShowAnspielFrame ? "team-has-anspiel" : "";
 	}
 
 	/// <summary>
-	/// Gibt den bereinigten Teamnamen zurück (ohne >> oder <<)
+	/// Gibt den bereinigten Teamnamen zurück (ohne » oder «)
 	/// Nur wenn Rahmen aktiviert ist, sonst werden Sonderzeichen behalten
 	/// </summary>
 	public string GetCleanTeamName(string teamName)
 	{
 		if (string.IsNullOrEmpty(teamName)) return teamName;
 
-		var activeTheme = _settingsService.CurrentSettings.UI.ActiveTheme;
-		var showFrame = activeTheme is CustomTheme customTheme && customTheme.ShowFrameOnAnspiel;
+		if (!ShowAnspielFrame) return teamName; // Sonderzeichen behalten wenn Rahmen nicht aktiv
 
-		if (!showFrame) return teamName; // Sonderzeichen behalten wenn Rahmen nicht aktiv
-
-		return teamName.Replace("»", "").Replace("«", "").Trim();
+		return AnspielWechsel.OhneZeichen(teamName);
 	}
 
 	#endregion

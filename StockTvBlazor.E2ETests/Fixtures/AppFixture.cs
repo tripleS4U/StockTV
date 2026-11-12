@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http;
+using System.Net.NetworkInformation;
 using Microsoft.Playwright;
 using NetMQ;
 using NetMQ.Sockets;
@@ -40,6 +41,9 @@ public class AppFixture : IAsyncLifetime
 
 	public async Task InitializeAsync()
 	{
+		// Abbrechen, falls eine andere StockTV-Instanz (z.B. Docker-Container) die Ports belegt
+		EnsureRequiredPortsAreFree();
+
 		// Start the StockTV app in a subprocess
 		await StartAppAsync();
 
@@ -154,6 +158,28 @@ public class AppFixture : IAsyncLifetime
 			}
 			catch { }
 			_appProcess.Dispose();
+		}
+	}
+
+	/// <summary>
+	/// Die Tests sprechen NetMQ fest über 4747/4748 an. Läuft dort bereits eine andere Instanz
+	/// (z.B. Docker-Container), gehen die Nachrichten an diese statt an die Test-App.
+	/// </summary>
+	private static void EnsureRequiredPortsAreFree()
+	{
+		int[] requiredPorts = { 5001, 4747, 4748 };
+		var listening = IPGlobalProperties.GetIPGlobalProperties()
+			.GetActiveTcpListeners()
+			.Select(e => e.Port)
+			.ToHashSet();
+
+		var busy = requiredPorts.Where(listening.Contains).ToList();
+		if (busy.Count > 0)
+		{
+			throw new InvalidOperationException(
+				$"Die E2E-Tests benötigen freie Ports, aber folgende Ports sind belegt: {string.Join(", ", busy)}. " +
+				"Vermutlich läuft eine andere StockTV-Instanz (z.B. Docker-Container 'stocktvbahn1', 'docker ps'). " +
+				"Instanz stoppen und Tests erneut starten.");
 		}
 	}
 
@@ -435,10 +461,22 @@ public class AppFixture : IAsyncLifetime
 		if (_publisherSubscriber == null)
 			throw new InvalidOperationException("Publisher subscriber not initialized");
 
-		if (active)
-			_publisherSubscriber.Subscribe("");
+		var socket = _publisherSubscriber;
+		void Umschalten()
+		{
+			if (active)
+				socket.Subscribe("");
+			else
+				socket.Unsubscribe("");
+		}
+
+		// NetMQ-Sockets sind nicht threadsicher: der Socket wird vom Poller-Thread gelesen, also auch dort
+		// (ab)melden. Vom Test-Thread aus ging die Abmeldung gelegentlich verloren (Phase 13/14).
+		// Der Poller ist ein TaskScheduler - Wait() sorgt dafuer, dass die Meldung raus ist, bevor der Test weitergeht.
+		if (_poller is { IsRunning: true } poller)
+			Task.Factory.StartNew(Umschalten, CancellationToken.None, TaskCreationOptions.None, poller).Wait(TimeSpan.FromSeconds(5));
 		else
-			_publisherSubscriber.Unsubscribe("");
+			Umschalten();
 	}
 
 	/// <summary>
@@ -552,7 +590,12 @@ public class AppFixture : IAsyncLifetime
 			{
 				try
 				{
-					return await File.ReadAllTextAsync(filePath);
+					// Mit Schreib- und Loesch-Freigabe: sonst scheitert das atomare Ersetzen (File.Move) der App,
+					// solange der Test die Datei offen hat - die Aenderung ging dabei verloren (Phase 10/13).
+					await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+						FileShare.ReadWrite | FileShare.Delete);
+					using var reader = new StreamReader(stream);
+					return await reader.ReadToEndAsync();
 				}
 				catch (IOException) when (i < maxRetries - 1)
 				{
@@ -595,7 +638,7 @@ public class AppFixture : IAsyncLifetime
 	/// Wartet darauf, dass eine lokale Datei gelöscht wird.
 	/// Nützlich für die Validierung von asynchronem Löschen, z.B. wenn ResetResult die State-Datei löscht.
 	/// </summary>
-	/// <param name="filename">Der Name der zu überwachenden Datei (z.B. "ziel-state.json")</param>
+	/// <param name="filename">Der Name der zu überwachenden Datei (z.B. "stocktv.state.json")</param>
 	/// <param name="maxWaitMs">Maximale Wartezeit in Millisekunden (default 3000)</param>
 	/// <returns>true wenn die Datei gelöscht wurde, false wenn Timeout erreicht</returns>
 	public async Task<bool> WaitForLocalFileDeletedAsync(string filename, int maxWaitMs = 3000)
