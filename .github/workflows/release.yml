@@ -145,7 +145,9 @@ jobs:
   build-rpi:
     name: Build Raspberry Pi Image
     needs: version
-    runs-on: ubuntu-latest
+    # Fest auf 24.04: ab Ubuntu 26.04 (ubuntu-latest seit Oktober 2026) gibt es das Paket qemu-user-static
+    # nicht mehr, und build-image.sh braucht /usr/bin/qemu-aarch64-static fuer die chroot.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v6
