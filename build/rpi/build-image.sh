@@ -16,6 +16,7 @@
 #  Umgebungsvariablen:
 #    STOCKTV_VERSION  – Versionsnummer (default: "dev")
 #    STOCKTV_API_KEY  – Schluessel der REST-Schnittstelle (default: "Secret4StockTV?")
+#    STOCKTV_REPO     – Quelle der Releases fuer das Online-Update (default: "Trawacho/StockTV")
 #
 #  Ausgabe:
 #    stocktv-rpi-<version>.img.xz
@@ -35,6 +36,12 @@ VERSION="${STOCKTV_VERSION:-dev}"
 # Alle Geraete aus diesem Image haben denselben Schluessel - eine Huerde gegen versehentliche
 # Zugriffe, kein Geraeteschutz. Pro Geraet aendern: POST /api/v1/config/api-key.
 API_KEY="${STOCKTV_API_KEY:-Secret4StockTV?}"
+REPO="${STOCKTV_REPO:-Trawacho/StockTV}"
+# Der Wert landet im als root laufenden Update-Skript - nur "besitzer/name" zulassen.
+if ! [[ "$REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+    echo "Fehler: STOCKTV_REPO muss die Form besitzer/repository haben (ist: $REPO)" >&2
+    exit 1
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PUBLISH_DIR="$SCRIPT_DIR/publish"
@@ -396,10 +403,10 @@ install -m 0755 -o root -g root /tmp/stocktv-set-hostname.sh "$MNT/usr/local/sbi
 rm -f /tmp/stocktv-set-hostname.sh
 
 # Update-Skript
-cat > /tmp/stocktv-run-update.sh <<'UPDATE_SCRIPT_EOF'
+cat > /tmp/stocktv-run-update.sh <<UPDATE_SCRIPT_EOF
 #!/bin/bash
 set -e
-curl -sSL https://raw.githubusercontent.com/Trawacho/StockTV/main/build/rpi/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/$REPO/main/build/rpi/install.sh | STOCKTV_REPO=$REPO bash
 UPDATE_SCRIPT_EOF
 install -m 0755 -o root -g root /tmp/stocktv-run-update.sh "$MNT/usr/local/sbin/stocktv-run-update.sh"
 rm -f /tmp/stocktv-run-update.sh

@@ -13,7 +13,9 @@ RUN dotnet restore StockTvBlazor/StockTvBlazor.csproj
 # Rest kopieren
 COPY . .
 
-RUN dotnet publish StockTvBlazor/StockTvBlazor.csproj -c Release -o /app/publish -p:UseAppHost=false
+# Quelle der Releases fuer die Update-Pruefung (besitzer/repository); docker.yml setzt das Repository des Builds.
+ARG STOCKTV_REPOSITORY=Trawacho/StockTV
+RUN dotnet publish StockTvBlazor/StockTvBlazor.csproj -c Release -o /app/publish -p:UseAppHost=false -p:StockTvRepository=${STOCKTV_REPOSITORY}
 
 # =========================
 # RUNTIME STAGE

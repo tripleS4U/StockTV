@@ -85,3 +85,5 @@ jobs:
           provenance: false
           platforms: ${{ inputs.platforms }}
           tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            STOCKTV_REPOSITORY=${{ github.repository }}

@@ -16,7 +16,14 @@
 
 set -e
 
-REPO="Trawacho/StockTV"
+# Quelle der Releases (besitzer/repository). Ein Fork setzt STOCKTV_REPO, z.B.
+#    curl -sSL https://raw.githubusercontent.com/<besitzer>/StockTV/main/<pfad> | STOCKTV_REPO=<besitzer>/StockTV bash
+REPO="${STOCKTV_REPO:-Trawacho/StockTV}"
+# Der Wert landet im als root laufenden Update-Skript - nur "besitzer/name" zulassen.
+if ! [[ "$REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+    echo "Fehler: STOCKTV_REPO muss die Form besitzer/repository haben (ist: $REPO)" >&2
+    exit 1
+fi
 ASSET_NAME="stocktv-rpi.zip"
 INSTALL_DIR="/opt/stocktv"
 KIOSK_SENTINEL="$INSTALL_DIR/.kiosk"
@@ -273,10 +280,10 @@ $SUDO chown -R "$APP_USER:$APP_USER" "$INSTALL_DIR"
 # ausfuehren darf - das waere eine Privilege-Escalation-Luecke.
 echo "Aktualisiere Update-Skript (/usr/local/sbin/stocktv-run-update.sh)..."
 UPDATE_SCRIPT_TMP=$(mktemp)
-cat > "$UPDATE_SCRIPT_TMP" <<'UPDATESCRIPTEOF'
+cat > "$UPDATE_SCRIPT_TMP" <<UPDATESCRIPTEOF
 #!/bin/bash
 set -e
-curl -sSL https://raw.githubusercontent.com/Trawacho/StockTV/main/build/rpi/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/$REPO/main/build/rpi/install.sh | STOCKTV_REPO=$REPO bash
 UPDATESCRIPTEOF
 $SUDO install -m 0755 -o root -g root "$UPDATE_SCRIPT_TMP" /usr/local/sbin/stocktv-run-update.sh
 rm -f "$UPDATE_SCRIPT_TMP"

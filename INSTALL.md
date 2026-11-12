@@ -22,6 +22,7 @@ Installationsanleitung für Raspberry Pi, Windows und Docker.
   - [Mehrere Bahnen auf einem Rechner](#mehrere-bahnen-auf-einem-rechner)
   - [Update (Docker)](#update-docker)
   - [Hinweise (Docker)](#hinweise-docker)
+- [Installation aus einem anderen Repository (Fork)](#installation-aus-einem-anderen-repository-fork)
 - [Konfiguration nach der Installation](#konfiguration-nach-der-installation)
   - [Konfigurationsdateien](#konfigurationsdateien)
   - [Fernsteuerung über die REST-Schnittstelle](#fernsteuerung-über-die-rest-schnittstelle)
@@ -580,6 +581,30 @@ einem Neuerstellen des Containers.
   siehe [Fernsteuerung über die REST-Schnittstelle](#fernsteuerung-über-die-rest-schnittstelle).
 - **Bahnnummer:** Wird wie bei den anderen Plattformen über die Einstellungsseite in der
   App gesetzt, siehe [Konfiguration nach der Installation](#konfiguration-nach-der-installation).
+
+---
+
+## Installation aus einem anderen Repository (Fork)
+
+Standardmäßig laden die Installer und die Update-Prüfung der App die Releases von
+`Trawacho/StockTV`. Wer StockTV aus einem eigenen Fork verteilt, gibt das Repository so an
+(`<besitzer>` durch den eigenen GitHub-Namen ersetzen):
+
+```bash
+# Raspberry Pi bzw. Linux x64 (install-dual.sh bzw. build/linux/install.sh entsprechend)
+curl -sSL https://raw.githubusercontent.com/<besitzer>/StockTV/main/build/rpi/install.sh | STOCKTV_REPO=<besitzer>/StockTV bash
+```
+
+```powershell
+# Windows
+.\install-service.ps1 -Download -Repo "<besitzer>/StockTV"
+```
+
+- Das Online-Update über die `/setup`-Seite merkt sich das Repository der Installation.
+- Releases, die die GitHub-Pipeline eines Forks baut, sind bereits auf den Fork eingestellt:
+  Update-Prüfung der App, fertiges Pi-Image und `install-service.ps1` im Windows-Paket.
+  Nur der erste Aufruf per `curl` von GitHub braucht `STOCKTV_REPO`.
+- Erlaubt ist nur die Form `besitzer/repository` (Buchstaben, Ziffern, `.`, `-`, `_`).
 
 ---
 

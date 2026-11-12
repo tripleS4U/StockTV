@@ -10,7 +10,14 @@
          1591 aus: fuer die Blazor- und Settings-Klassen sind sie nicht gefordert. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <!-- Quelle der Releases fuer die Update-Pruefung (besitzer/repository). Die Release-Pipeline
+         setzt -p:StockTvRepository=${{ github.repository }}, ein Fork bekommt so seine eigenen Updates. -->
+    <StockTvRepository Condition="'$(StockTvRepository)' == ''">Trawacho/StockTV</StockTvRepository>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="StockTvRepository" Value="$(StockTvRepository)" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="Services\LoggingServices.cs" />
