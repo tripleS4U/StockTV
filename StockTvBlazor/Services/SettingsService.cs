@@ -535,7 +535,8 @@ public class SettingsService : BackgroundService
 			await stream.FlushAsync();
 		}
 
-		File.Move(tempPath, path, overwrite: true);
+		// Mit Wiederholung: liest gerade jemand die Datei, scheitert das Ersetzen unter Windows sonst (DateiErsetzen).
+		await DateiErsetzen.AusTempAsync(tempPath, path);
 	}
 
 	private async Task SaveSettingsInternalAsync(SettingsScope scope)

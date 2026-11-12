@@ -237,7 +237,7 @@ public sealed class GameStateStore(ILogger<GameStateStore> logger) : BackgroundS
 				await stream.FlushAsync();
 			}
 
-			File.Move(tempPath, path, overwrite: true);
+			await DateiErsetzen.AusTempAsync(tempPath, path);
 		}
 		finally
 		{

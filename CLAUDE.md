@@ -200,6 +200,11 @@ OnNavigationRequested   — Navigation zu URL
 ### NetMQ-Callbacks
 Laufen auf dem Poller-Thread → State-Änderungen **immer** über `_actionChannel` delegieren, nicht direkt aufrufen.
 
+**Sockets nur auf ihrem Poller-Thread benutzen** (NetMQ ist nicht threadsicher): `NetMqPublisherService` sendet über
+die `NetMQQueue` `_sendQueue`, die im Poller hängt – nicht aus einer Task. Früher sendete eine Thread-Pool-Task parallel
+zum Lesen der Ab-/Anmeldungen; Abmeldungen gingen verloren und `BlockLocalChanges` blieb stehen. Dasselbe gilt in der
+E2E-Fixture: `SetPublisherSubscriptionActive` (ab)meldet über den Poller (`Task.Factory.StartNew(..., poller)`).
+
 ---
 
 ## Netzwerk & Ports
