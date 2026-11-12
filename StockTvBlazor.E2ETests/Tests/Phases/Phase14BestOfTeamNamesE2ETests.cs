@@ -66,9 +66,14 @@ public class Phase14BestOfTeamNamesE2ETests : PhaseTestBase
 			Log(CurrentPhase, "Editor öffnet mit zwei leeren Feldern", LogSymbol.Check);
 
 			// --- Teil C: Rahmenfarben entsprechen G/R (Richtung=Rechts -> links=Grün, rechts=Rot) ---
-			var leftBorder = await Fixture.Page.Locator(".team-name-input-left").EvaluateAsync<string>("el => getComputedStyle(el).borderColor");
-			var rightBorder = await Fixture.Page.Locator(".team-name-input-right").EvaluateAsync<string>("el => getComputedStyle(el).borderColor");
-			Assert.Equal("rgb(0, 128, 0)", leftBorder);
+			// Das Grün hängt vom aktiven Theme ab (ColorSettingsFactory: Hell #008000, Dunkel #9acd32), und
+			// vorherige Phasen lassen das Theme stehen. Deshalb: Rahmen = Theme-Farbe (--fg-left/--fg-right)
+			// UND diese Farbe ist eines der beiden Grün bzw. Rot.
+			var (leftBorder, leftTheme) = await RahmenUndThemeFarbe(".team-name-input-left", "--fg-left");
+			var (rightBorder, rightTheme) = await RahmenUndThemeFarbe(".team-name-input-right", "--fg-right");
+			Assert.Equal(leftTheme, leftBorder);
+			Assert.Equal(rightTheme, rightBorder);
+			Assert.Contains(leftBorder, new[] { "rgb(0, 128, 0)", "rgb(154, 205, 50)" });
 			Assert.Equal("rgb(255, 0, 0)", rightBorder);
 			Log(CurrentPhase, "Rahmenfarben entsprechen G/R-Tasten (links=Grün, rechts=Rot)", LogSymbol.Check);
 
@@ -157,5 +162,23 @@ public class Phase14BestOfTeamNamesE2ETests : PhaseTestBase
 			Fixture.SetPublisherSubscriptionActive(true);
 			LogPhaseEnd("Phase 14");
 		}
+	}
+
+	/// <summary>
+	/// Rahmenfarbe eines Elements und die Farbe der Theme-Variable, beide als „rgb(r, g, b)“. Die Variable wird über
+	/// ein Hilfselement im selben Kontext aufgelöst, damit Hex- und rgb-Schreibweise vergleichbar sind.
+	/// </summary>
+	private async Task<(string Rahmen, string Theme)> RahmenUndThemeFarbe(string selektor, string variable)
+	{
+		var werte = await Fixture.Page!.Locator(selektor).EvaluateAsync<string[]>(
+			@"(el, v) => {
+				const probe = document.createElement('span');
+				probe.style.color = `var(${v})`;
+				el.parentElement.appendChild(probe);
+				const theme = getComputedStyle(probe).color;
+				probe.remove();
+				return [getComputedStyle(el).borderColor, theme];
+			}", variable);
+		return (werte[0], werte[1]);
 	}
 }

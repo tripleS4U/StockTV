@@ -17,7 +17,11 @@ public class NetMqPublisherService : BackgroundService, IDisposable
 
 	private readonly NetMQTimer _aliveTimer;
 
-	private readonly Channel<(string Topic, object Payload)> _messageChannel;
+	// NetMQ-Sockets sind nicht threadsicher: der Poller-Thread liest die (Ab-)Meldungen der Abonnenten vom
+	// XPUB-Socket. Gesendet wird deshalb ebenfalls auf dem Poller-Thread - ueber diese Warteschlange, die selbst
+	// im Poller haengt. Frueher sendete eine Thread-Pool-Task parallel zum Lesen; dabei gingen gelegentlich
+	// Abmeldungen verloren und BlockLocalChanges blieb stehen (E2E Phase 13).
+	private readonly NetMQQueue<(string Topic, object Payload)> _sendQueue;
 	private readonly Channel<bool> _blockLocalChangesChannel;
 
 	private string _serializedAliveInfo;
@@ -93,8 +97,14 @@ public class NetMqPublisherService : BackgroundService, IDisposable
 				settingsService.CurrentSettings.General.BahnNummer));
 		};
 
-		_poller = [_pubSocket, _aliveTimer];
-		_messageChannel = Channel.CreateUnbounded<(string, object)>();
+		_sendQueue = new NetMQQueue<(string Topic, object Payload)>();
+		_sendQueue.ReceiveReady += (_, e) =>
+		{
+			while (e.Queue.TryDequeue(out var nachricht, TimeSpan.Zero))
+				Senden(nachricht.Topic, nachricht.Payload);
+		};
+
+		_poller = [_pubSocket, _aliveTimer, _sendQueue];
 		_blockLocalChangesChannel = Channel.CreateUnbounded<bool>();
 
 		_pubSocket.ReceiveReady += OnReceiveReady;
@@ -114,16 +124,21 @@ public class NetMqPublisherService : BackgroundService, IDisposable
 		}
 	}
 
-	public void Publish(string topic, string payload)
-	{
-		if (!_messageChannel.Writer.TryWrite((topic, payload)))
-			_logger.LogWarning("Publish fehlgeschlagen. Topic: {Topic}", topic);
-	}
+	public void Publish(string topic, string payload) => Einreihen(topic, payload);
 
-	public void Publish(string topic, byte[] data)
+	public void Publish(string topic, byte[] data) => Einreihen(topic, data);
+
+	/// <summary>Thread-sicher: reiht ein, gesendet wird auf dem Poller-Thread (siehe <see cref="_sendQueue"/>).</summary>
+	private void Einreihen(string topic, object payload)
 	{
-		if (!_messageChannel.Writer.TryWrite((topic, data)))
-			_logger.LogWarning("Publish fehlgeschlagen. Topic: {Topic}", topic);
+		try
+		{
+			_sendQueue.Enqueue((topic, payload));
+		}
+		catch (ObjectDisposedException)
+		{
+			_logger.LogWarning("Publish nach dem Beenden verworfen. Topic: {Topic}", topic);
+		}
 	}
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -131,12 +146,11 @@ public class NetMqPublisherService : BackgroundService, IDisposable
 		_logger.LogInformation("ExecuteAsync gestartet");
 		_poller.RunAsync();
 
-		var messageTask = HandleMessagesAsync(stoppingToken);
 		var blockChangesTask = HandleBlockChangesAsync(stoppingToken);
 
 		try
 		{
-			await Task.WhenAll(messageTask, blockChangesTask);
+			await blockChangesTask;
 		}
 		catch (OperationCanceledException)
 		{
@@ -147,27 +161,21 @@ public class NetMqPublisherService : BackgroundService, IDisposable
 		_logger.LogInformation("ExecuteAsync beendet");
 	}
 
-	private async Task HandleMessagesAsync(CancellationToken stoppingToken)
+	/// <summary>Nur auf dem Poller-Thread aufrufen (Alive-Timer, Sende-Warteschlange).</summary>
+	private void Senden(string topic, object payload)
 	{
 		try
 		{
-			await foreach (var (topic, payload) in _messageChannel.Reader.ReadAllAsync(stoppingToken))
-			{
-				try
-				{
-					_pubSocket.SendMoreFrame(topic);
-					if (payload is string text)
-						_pubSocket.SendFrame(text);
-					else if (payload is byte[] bytes)
-						_pubSocket.SendFrame(bytes);
-				}
-				catch (Exception ex)
-				{
-					_logger.LogError(ex, "Fehler beim Senden. Topic: {Topic}", topic);
-				}
-			}
+			_pubSocket.SendMoreFrame(topic);
+			if (payload is string text)
+				_pubSocket.SendFrame(text);
+			else if (payload is byte[] bytes)
+				_pubSocket.SendFrame(bytes);
 		}
-		catch (OperationCanceledException) { }
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Fehler beim Senden. Topic: {Topic}", topic);
+		}
 	}
 
 	private async Task HandleBlockChangesAsync(CancellationToken stoppingToken)
@@ -191,12 +199,12 @@ public class NetMqPublisherService : BackgroundService, IDisposable
 		_disposed = true;
 
 		_logger.LogInformation("NetMqPublisherService Dispose gestartet");
-		_messageChannel.Writer.TryComplete();
 		_blockLocalChangesChannel.Writer.TryComplete();
 		_pubSocket.ReceiveReady -= OnReceiveReady;
 		if (_poller.IsRunning)
 			_poller.StopAsync();
 		_poller.Dispose();
+		_sendQueue.Dispose();
 		_logger.LogInformation("NetMqPublisherService dispose beendet");
 
 		base.Dispose();

@@ -461,10 +461,22 @@ public class AppFixture : IAsyncLifetime
 		if (_publisherSubscriber == null)
 			throw new InvalidOperationException("Publisher subscriber not initialized");
 
-		if (active)
-			_publisherSubscriber.Subscribe("");
+		var socket = _publisherSubscriber;
+		void Umschalten()
+		{
+			if (active)
+				socket.Subscribe("");
+			else
+				socket.Unsubscribe("");
+		}
+
+		// NetMQ-Sockets sind nicht threadsicher: der Socket wird vom Poller-Thread gelesen, also auch dort
+		// (ab)melden. Vom Test-Thread aus ging die Abmeldung gelegentlich verloren (Phase 13/14).
+		// Der Poller ist ein TaskScheduler - Wait() sorgt dafuer, dass die Meldung raus ist, bevor der Test weitergeht.
+		if (_poller is { IsRunning: true } poller)
+			Task.Factory.StartNew(Umschalten, CancellationToken.None, TaskCreationOptions.None, poller).Wait(TimeSpan.FromSeconds(5));
 		else
-			_publisherSubscriber.Unsubscribe("");
+			Umschalten();
 	}
 
 	/// <summary>
@@ -578,7 +590,12 @@ public class AppFixture : IAsyncLifetime
 			{
 				try
 				{
-					return await File.ReadAllTextAsync(filePath);
+					// Mit Schreib- und Loesch-Freigabe: sonst scheitert das atomare Ersetzen (File.Move) der App,
+					// solange der Test die Datei offen hat - die Aenderung ging dabei verloren (Phase 10/13).
+					await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+						FileShare.ReadWrite | FileShare.Delete);
+					using var reader = new StreamReader(stream);
+					return await reader.ReadToEndAsync();
 				}
 				catch (IOException) when (i < maxRetries - 1)
 				{
