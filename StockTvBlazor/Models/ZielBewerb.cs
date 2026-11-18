@@ -80,6 +80,7 @@ public class ZielBewerb
 
 	public void DeleteLastVersuch()
 	{
+		_nachZeit.Remove(AnzahlVersuche() - 1);
 		if (_kombinieren.Count > 0)
 			_kombinieren.RemoveAt(_kombinieren.Count - 1);
 		else if (_massenSeite.Count > 0)
@@ -119,7 +120,17 @@ public class ZielBewerb
 		return false;
 	}
 
-	public bool AddVersuch(int value)
+	/// <summary>
+	/// Versuche „nach Zeit“: eingetragen, als die Wertungsuhr der Zentrale schon auf 0:00 stand (IER: zaehlen nicht). Gemerkt
+	/// als Position in der laufenden Runde (0 = erster Versuch von Mass Mitte); die Teile fuellen sich nacheinander.
+	/// </summary>
+	private readonly SortedSet<int> _nachZeit = [];
+
+	/// <summary>Versuchsnummern (ab 1) „nach Zeit“ in Teil <paramref name="teil"/> (0–3) der laufenden Runde.</summary>
+	public IReadOnlyList<int> NachZeit(int teil) =>
+		_nachZeit.Where(p => p / Math.Max(1, MaxKehrenProSpiel) == teil).Select(p => p % Math.Max(1, MaxKehrenProSpiel) + 1).ToList();
+
+	public bool AddVersuch(int value, bool nachZeit = false)
 	{
 		bool success = false;
 
@@ -133,6 +144,7 @@ public class ZielBewerb
 				_massenSeite.Clear();
 				_kombinieren.Clear();
 				_aktuellerDurchgang = 2;
+				_nachZeit.Clear();
 				success = TryAddVersuchInternal(value);
 			}
 		}
@@ -140,6 +152,9 @@ public class ZielBewerb
 		{
 			success = TryAddVersuchInternal(value);
 		}
+
+		if (success && nachZeit)
+			_nachZeit.Add(AnzahlVersuche() - 1);
 
 		if (success)
 			OnZielBewerbChanged?.Invoke();
@@ -149,6 +164,7 @@ public class ZielBewerb
 
 	public void Reset()
 	{
+		_nachZeit.Clear();
 		_massenVorne.Clear();
 		_schiessen.Clear();
 		_massenSeite.Clear();
@@ -177,7 +193,8 @@ public class ZielBewerb
 		Kombinieren = [.. _kombinieren],
 		Spielername = _spielerName ?? string.Empty,
 		Runde1Summe = _runde1Summe,
-		Durchgang = _aktuellerDurchgang
+		Durchgang = _aktuellerDurchgang,
+		NachZeit = [.. _nachZeit]
 	};
 
 	/// <summary>
@@ -195,6 +212,7 @@ public class ZielBewerb
 		_schiessen.Clear(); _schiessen.AddRange(state.Schiessen);
 		_massenSeite.Clear(); _massenSeite.AddRange(state.MassenSeite);
 		_kombinieren.Clear(); _kombinieren.AddRange(state.Kombinieren);
+		_nachZeit.Clear(); _nachZeit.UnionWith(state.NachZeit ?? []);
 
 		_spielerName = state.Spielername;
 		_runde1Summe = state.Runde1Summe;

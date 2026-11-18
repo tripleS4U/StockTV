@@ -5,8 +5,9 @@ using StockTvBlazor.Settings;
 namespace StockTvBlazor.Components.ViewModels;
 
 /// <summary>Eine Kachel: ein Teil des Durchgangs (Maß Mitte, Stockschießen, Maß hinten, Kombinieren).</summary>
+/// <param name="Punkte">CSS-Klasse je Versuch: „voll“ (eingetragen), „nachzeit“ (nach Ablauf der Uhr eingetragen, rot) oder leer.</param>
 /// <param name="Zustand">„fertig“, „laeuft“ oder „offen“ (CSS-Klasse).</param>
-public sealed record ZielKachel(int Nummer, string Name, string Summe, IReadOnlyList<bool> Versuche, string Zustand);
+public sealed record ZielKachel(int Nummer, string Name, string Summe, IReadOnlyList<string> Punkte, string Zustand);
 
 /// <summary>
 /// Seite <c>/ziel-kacheln</c>: vier Kacheln, Aufgabe des nächsten Versuchs und Wertungsuhr. Die Eingabe läuft wie auf
@@ -60,6 +61,9 @@ public sealed class ZielKachelnViewModel : IPageViewModel
 		_uhr.Geaendert -= Geaendert;
 	}
 
+	/// <summary>Versuchsnummern „nach Zeit“ in Teil <paramref name="teil"/> (Demo: keine).</summary>
+	private IReadOnlyList<int> NachZeit(int teil) => _isDemoMode ? [] : _bewerb.NachZeit(teil);
+
 	private int VersucheProTeil => _isDemoMode ? 6 : Math.Max(1, _settingsService.CurrentSettings.Game.MaxKehrenProSpiel);
 
 	/// <summary>Versuche je Teil in der laufenden Runde (Demo: Teil 1 voll, Teil 2 halb).</summary>
@@ -89,7 +93,7 @@ public sealed class ZielKachelnViewModel : IPageViewModel
 				i + 1,
 				ZielAufgaben.Namen[i],
 				v.Count == 0 ? "–" : v.Sum().ToString(),
-				Enumerable.Range(0, VersucheProTeil).Select(n => n < v.Count).ToList(),
+				Enumerable.Range(0, VersucheProTeil).Select(n => n >= v.Count ? "" : NachZeit(i).Contains(n + 1) ? "voll nachzeit" : "voll").ToList(),
 				i < laufend ? "fertig" : i == laufend ? "laeuft" : "offen")).ToList();
 		}
 	}

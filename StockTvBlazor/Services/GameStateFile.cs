@@ -76,6 +76,9 @@ public sealed class ZielState
 
 	public int Durchgang { get; set; } = 1;
 
+	/// <summary>Positionen der Versuche „nach Zeit“ in der laufenden Runde (siehe <see cref="Models.ZielBewerb.NachZeit"/>).</summary>
+	public List<int> NachZeit { get; set; } = [];
+
 	[JsonIgnore]
 	public bool IsEmpty =>
 		MassenVorne.Count == 0 && Schiessen.Count == 0 && MassenSeite.Count == 0

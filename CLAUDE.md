@@ -134,6 +134,10 @@ Pro Disziplin werden `MaxKehrenProSpiel` Versuche eingegeben. Ungültige Werte w
   2 Durchgang, Dauer, Restzeit, angehalten, Folge). Das Gerät zählt mit `TimeProvider.GetTimestamp` (monoton) weiter – die Tageszeit des
   Pi spielt keine Rolle. Ohne neue Meldung länger als 90 s verschwindet die Uhr (StockSuite wiederholt alle 30 s): ohne Verbindung keine
   Uhr. Ältere Folgenummern werden ignoriert. Anzeige: gelb ab 2 min, blinkend ab 30 s, rot „Zeit abgelaufen“, grau angehalten.
+- **Versuche „nach Zeit“**: Wird ein Versuch eingetragen, während die Uhr auf 0:00 steht (`ZielUhrService.Anzeige().Abgelaufen`),
+  merkt `ZielBewerb` ihn als „nach Zeit“ (Position in der laufenden Runde, im Spielstand `ZielState.NachZeit`; Löschen, Zurücksetzen
+  und die zweite Ziel2-Runde räumen mit auf). `ZielDisziplinDto.NachZeit` meldet die Versuchsnummern je Teil; `/ziel-kacheln` zeigt
+  sie rot. Gewertet wird in der Zentrale (StockSuite: 0 Punkte mit Hinweis).
 
 ### Ziel2-Modus (Zwei-Runden-Variante von Ziel)
 Gleiche 4 Disziplinen wie im Ziel-Modus. Sobald alle `MaxVersucheGesamt` (= `MaxKehrenProSpiel * 4`)
