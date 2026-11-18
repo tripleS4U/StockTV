@@ -11,7 +11,19 @@ public class GameSettings
 		Ziel2 = 101
 	}
 
+	public enum ZielAnsichtArt
+	{
+		/// <summary>Bisherige Seite /ziel - bleibt fuer die alte StockApp (NetMQ) die Vorgabe.</summary>
+		Klassisch = 0,
+
+		/// <summary>Seite /ziel-kacheln: vier Durchgangsteile als Kacheln, Aufgabe des naechsten Versuchs, Wertungsuhr.</summary>
+		Kacheln = 1
+	}
+
 	public Modus CurrentModus { get; set; } = Modus.Training;
+
+	/// <summary>Welche Seite die Modi Ziel/Ziel2 zeigen. Wird nur ueber REST (StockSuite) umgestellt.</summary>
+	public ZielAnsichtArt ZielAnsicht { get; set; } = ZielAnsichtArt.Klassisch;
 
 	public int MaxPunkteProKehre { get; set; } = 10;
 	public int MaxKehrenProSpiel { get; set; } = 6;

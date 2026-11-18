@@ -122,7 +122,7 @@ public class HomeBase : ComponentBase, IAsyncDisposable
 				return;
 
 			var settings = SettingsService.CurrentSettings;
-			string pageName = SettingsService.GetModusUrl(settings.Game.CurrentModus);
+			string pageName = SettingsService.GetModusUrl(settings);
 			string[] pagesToOpen = [pageName];
 
 			//if (Debugger.IsAttached)

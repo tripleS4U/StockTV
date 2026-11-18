@@ -55,6 +55,8 @@ builder.Services.AddSingleton<SettingsService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SettingsService>());
 builder.Services.AddSingleton<MatchService>();
 builder.Services.AddSingleton<ZielService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ZielUhrService>();
 builder.Services.AddSingleton<FontService>();
 builder.Services.AddSingleton<PlatformInfoService>();
 builder.Services.AddSingleton<NetworkConfigService>();
@@ -86,6 +88,7 @@ builder.Services.AddTransient<TrainingViewModel>();
 builder.Services.AddTransient<BestOfViewModel>();
 builder.Services.AddTransient<SettingsViewModel>();
 builder.Services.AddTransient<ZielViewModel>();
+builder.Services.AddTransient<ZielKachelnViewModel>();
 
 builder.Services.Configure<HostOptions>(options =>
 {

@@ -122,6 +122,19 @@ StockTV/
 
 Pro Disziplin werden `MaxKehrenProSpiel` Versuche eingegeben. Ungültige Werte werden 1,5 Sekunden angezeigt.
 
+### Ziel-Ansicht und Wertungsuhr (nur REST)
+
+- `Game.ZielAnsicht` (`Klassisch` = 0, Vorgabe; `Kacheln` = 1) wählt die Seite der Modi Ziel/Ziel2 (`SettingsService.GetModusUrl(settings)`).
+  Die **klassische Seite `/ziel` bleibt** für die alte StockApp (NetMQ kennt die Einstellung nicht). Umgestellt wird nur über
+  `PUT /api/v1/ziel/ansicht` (`SettingsService.SetZielAnsicht`, navigiert im Ziel-Modus sofort).
+- `/ziel-kacheln` (`ZielKacheln`, `ZielKachelnViewModel`): vier Kacheln (Maß Mitte, Stockschießen, Maß hinten, Kombinieren) mit Summe
+  und Punkten je Versuch, laufender Teil hervorgehoben; Aufgabe des nächsten Versuchs aus `Models/ZielAufgaben` (gleiche Tabelle wie
+  `ZielRegeln.Aufgabe` in StockSuite; 6 Versuche je Teil = Classic, 4 = Compact). Eingabe wie `/ziel` über `ZielService`.
+- **Wertungsuhr** (`Services/ZielUhrService`): kommt **nur von der Zentrale** (`PUT /api/v1/ziel/uhr`: Phase 0 keine / 1 Einspielen /
+  2 Durchgang, Dauer, Restzeit, angehalten, Folge). Das Gerät zählt mit `TimeProvider.GetTimestamp` (monoton) weiter – die Tageszeit des
+  Pi spielt keine Rolle. Ohne neue Meldung länger als 90 s verschwindet die Uhr (StockSuite wiederholt alle 30 s): ohne Verbindung keine
+  Uhr. Ältere Folgenummern werden ignoriert. Anzeige: gelb ab 2 min, blinkend ab 30 s, rot „Zeit abgelaufen“, grau angehalten.
+
 ### Ziel2-Modus (Zwei-Runden-Variante von Ziel)
 Gleiche 4 Disziplinen wie im Ziel-Modus. Sobald alle `MaxVersucheGesamt` (= `MaxKehrenProSpiel * 4`)
 Versuche der ersten Runde abgeschlossen sind, setzt `ZielBewerb.AddVersuch()` die vier
@@ -143,6 +156,7 @@ identisch zu Ziel — überall dort, wo `Modus.Ziel` geprüft wird, wird `Modus.
 | `/turnier`  | Anzeige Turnier-Modus |
 | `/bestof`   | Anzeige BestOf-Modus |
 | `/ziel`     | Anzeige Ziel-Modus |
+| `/ziel-kacheln` | Ziel-Modus neu: vier Kacheln (Teile des Durchgangs), Aufgabe des nächsten Versuchs, Wertungsuhr – nur mit `Game.ZielAnsicht = Kacheln` (REST) |
 | `/input`    | Keypad-Seite (Tablet), zeigt aktiven Modus als iframe |
 | `/display2` | Zweite Anzeige (gegenüberliegende Bahnseite), zeigt aktiven Modus gespiegelt als iframe |
 | `/settings` | Einstellungsseite (nur über Geheimtaste erreichbar) |
@@ -258,6 +272,7 @@ Gerätedatei liegt (Target `CopyDevDeviceConfig` im csproj). Nicht im Publish en
 | `GET` / `PUT /api/v1/settings` | `GetSettings` / `SetSettings` |
 | `PUT /api/v1/match/teamnames` | `SetTeamNames` |
 | `PUT /api/v1/ziel/teilnehmer` | `SetTeilnehmer` |
+| `GET`/`PUT /api/v1/ziel/uhr` · `GET`/`PUT /api/v1/ziel/ansicht` | *(neu, nur REST — Wertungsuhr und Ziel-Ansicht)* |
 | `GET` / `PUT` / `DELETE /api/v1/image` · `POST /api/v1/image/show` | `SetImage` · `ClearImage` · `GoToImage` |
 | `GET`/`PUT /api/v1/system/hostname` · `/network` · `POST /system/reboot` | die Pi-Kommandos |
 | `GET /api/v1/config` · `POST /api/v1/config/api-key` | *(neu, kein NetMQ-Gegenstück)* |
