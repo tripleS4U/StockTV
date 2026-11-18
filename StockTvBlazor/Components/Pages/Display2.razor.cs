@@ -85,7 +85,7 @@ public partial class Display2 : IDisposable
 		// der eingestellte Modus als Rückfall.
 		var url = _settingsService.MainWindowUrl;
 		if (string.IsNullOrEmpty(url))
-			url = SettingsService.GetModusUrl(_settingsService.CurrentSettings.Game.CurrentModus);
+			url = SettingsService.GetModusUrl(_settingsService.CurrentSettings);
 
 		// mirror=true heißt für die eingebettete Seite: reine Anzeige (keine Eingabe,
 		// kein Fokus, keine Eigennavigation). Die Ziel-Modi werden dabei bewusst nicht

@@ -1,0 +1,50 @@
+@page "/ziel-kacheln"
+@rendermode InteractiveServer
+@inherits MirrorableGamePageBase<ZielKachelnViewModel>
+
+<PageTitle>Zielbewerb</PageTitle>
+
+<div class="zk-grid page-fullscreen" @onkeydown="HandleGlobalKeyDown" tabindex="0" style="outline:none; @ViewModel.GetTableLayoutCssVariables()" @ref="inputRef">
+
+	<div class="zk-kopf">
+		<div class="zk-name"><AutoFitText Text="@Kopf(ViewModel.HatSpielerName ? ViewModel.SpielerName : ViewModel.Runde)" Min="8" /></div>
+		@if (ViewModel.UhrSichtbar)
+		{
+			<div class="zk-uhr @ViewModel.UhrKlasse">
+				<div class="zk-uhr-phase"><AutoFitText Text="@ViewModel.UhrPhase" Min="8" /></div>
+				<div class="zk-uhr-zeit"><AutoFitText Text="@ViewModel.UhrText" Min="10" /></div>
+			</div>
+		}
+	</div>
+
+	<div class="zk-kacheln">
+		@foreach (var k in ViewModel.Kacheln)
+		{
+			<div class="zk-kachel @k.Zustand">
+				<div class="zk-kachel-name"><AutoFitText Text="@($"{k.Nummer} {k.Name}")" Min="8" /></div>
+				<div class="zk-kachel-summe"><AutoFitText Text="@k.Summe" Min="10" Numeric="true" Fill="80" /></div>
+				<div class="zk-kachel-punkte">
+					@foreach (var v in k.Versuche)
+					{
+						<span class="zk-punkt @(v ? "voll" : "")"></span>
+					}
+				</div>
+			</div>
+		}
+	</div>
+
+	<div class="zk-aufgabe">
+		<div class="zk-aufgabe-text"><AutoFitText Text="@ViewModel.Aufgabe" Min="8" /></div>
+		<div class="zk-erlaubt"><AutoFitText Text="@ViewModel.ErlaubteWerte" Min="8" /></div>
+	</div>
+
+	<div class="zk-fuss">
+		@if (ViewModel.Ungueltig)
+		{
+			<div class="zk-ungueltig">ungültig</div>
+		}
+		<div class="zk-zelle zk-letzter"><AutoFitText Text="@ViewModel.Letzter" Min="10" Numeric="true" Fill="80" /></div>
+		<div class="zk-zelle zk-eingabe input-value"><AutoFitText Text="@ViewModel.Eingabe" Min="10" Numeric="true" Fill="80" /></div>
+		<div class="zk-zelle zk-gesamt"><AutoFitText Text="@ViewModel.Gesamt" Min="10" Numeric="true" Fill="90" /></div>
+	</div>
+</div>

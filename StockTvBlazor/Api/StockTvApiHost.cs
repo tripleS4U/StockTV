@@ -130,6 +130,7 @@ public sealed class StockTvApiHost(WebApplication app, ILogger logger) : IAsyncD
 		builder.Services.AddSingleton(mainServices.GetRequiredService<SettingsService>());
 		builder.Services.AddSingleton(mainServices.GetRequiredService<MatchService>());
 		builder.Services.AddSingleton(mainServices.GetRequiredService<ZielService>());
+		builder.Services.AddSingleton(mainServices.GetRequiredService<ZielUhrService>());
 		builder.Services.AddSingleton(mainServices.GetRequiredService<PlatformInfoService>());
 		builder.Services.AddSingleton(mainServices.GetRequiredService<NetworkConfigService>());
 		builder.Services.AddSingleton(mainServices.GetRequiredService<MarketingImageService>());

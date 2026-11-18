@@ -1,0 +1,187 @@
+/* ============================================================
+   Zielbewerb mit Kacheln und Wertungsuhr (/ziel-kacheln)
+   Zeilen: Kopf (Name + Uhr) · vier Kacheln · Aufgabe · Letzter/Eingabe/Gesamt
+   Farben aus dem Theme (ThemeHandler): --fg-color, --fg-color-ziel-*, --bg-color
+   ============================================================ */
+
+.zk-grid {
+    color: var(--fg-color);
+    background: var(--bg-color);
+    display: grid;
+    grid-template-rows: 16% 38% 14% 32%;
+    gap: 1.2vh;
+    padding: 1.2vh 1.2vw;
+    box-sizing: border-box;
+}
+
+/* ---------- Kopf: Name links, Uhr rechts ---------- */
+
+.zk-kopf {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2vw;
+    min-height: 0;
+}
+
+.zk-name {
+    container-type: size;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    text-transform: uppercase;
+    color: var(--fg-color-ziel-spielername);
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.zk-uhr {
+    width: 30vw;
+    display: grid;
+    grid-template-rows: 30% 70%;
+    border: 0.4vh solid currentColor;
+    border-radius: 1vh;
+    padding: 0 1vw;
+    box-sizing: border-box;
+}
+
+    .zk-uhr-phase, .zk-uhr-zeit {
+        container-type: size;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .zk-uhr-zeit {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* letzte 2 Minuten gelb, letzte 30 s blinkend, 0:00 rot, angehalten grau */
+    .zk-uhr.warn { color: #f2b705; }
+    .zk-uhr.blink { color: #f2b705; animation: zk-blink 1s steps(2, start) infinite; }
+    .zk-uhr.aus { color: #fff; background: #c62828; border-color: #c62828; }
+    .zk-uhr.halt { opacity: 0.45; }
+
+@keyframes zk-blink {
+    to { visibility: hidden; }
+}
+
+/* ---------- vier Kacheln ---------- */
+
+.zk-kacheln {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1vw;
+    min-height: 0;
+}
+
+.zk-kachel {
+    display: grid;
+    grid-template-rows: 22% 55% 23%;
+    border: 0.3vh solid currentColor;
+    border-radius: 1vh;
+    padding: 0.5vh 0.6vw;
+    box-sizing: border-box;
+    min-height: 0;
+    color: var(--fg-color-ziel-einzel);
+}
+
+    .zk-kachel.fertig { opacity: 0.55; }
+    .zk-kachel.offen { opacity: 0.35; }
+    .zk-kachel.laeuft {
+        color: var(--fg-color-ziel-gesamt);
+        border-width: 0.8vh;
+    }
+
+.zk-kachel-name, .zk-kachel-summe {
+    container-type: size;
+    padding: 0 6%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.zk-kachel-summe { font-weight: 700; }
+
+.zk-kachel-punkte {
+    display: flex;
+    gap: 0.6vw;
+    align-items: center;
+    justify-content: center;
+}
+
+.zk-punkt {
+    width: 1.6vw;
+    height: 1.6vw;
+    border-radius: 50%;
+    border: 0.25vw solid currentColor;
+    box-sizing: border-box;
+}
+
+    .zk-punkt.voll { background: currentColor; }
+
+/* ---------- Aufgabe des nächsten Versuchs ---------- */
+
+.zk-aufgabe {
+    display: grid;
+    grid-template-columns: 65% 35%;
+    min-height: 0;
+}
+
+.zk-aufgabe-text, .zk-erlaubt {
+    container-type: size;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.zk-aufgabe-text { font-weight: 600; }
+.zk-erlaubt { justify-content: flex-end; opacity: 0.7; }
+
+/* ---------- Fuß: letzter Wert · Eingabe · Gesamt ---------- */
+
+.zk-fuss {
+    position: relative;
+    display: grid;
+    grid-template-columns: 25% 25% 50%;
+    min-height: 0;
+}
+
+.zk-zelle {
+    container-type: size;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 700;
+}
+
+.zk-letzter { opacity: 0.6; }
+.zk-gesamt { color: var(--fg-color-ziel-gesamt); }
+
+/* wie auf /ziel: diagonaler Hinweis bei ungültiger Eingabe (bewusst viewport-basiert) */
+.zk-ungueltig {
+    position: absolute;
+    top: 50%;
+    left: 30%;
+    width: 40%;
+    transform: translateY(-50%) rotate(-12deg);
+    text-align: center;
+    font-size: 4vw;
+    font-weight: 500;
+    color: rgb(255, 0, 0);
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 50;
+}

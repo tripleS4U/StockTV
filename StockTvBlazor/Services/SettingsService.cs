@@ -214,7 +214,7 @@ public class SettingsService : BackgroundService
 		if (CurrentSettings.General.BlockLocalChanges) return;
 
 		RequestSaveSettings();
-		OnNavigationRequested?.Invoke(GetModusUrl(CurrentSettings.Game.CurrentModus));
+		OnNavigationRequested?.Invoke(GetModusUrl(CurrentSettings));
 	}
 
 	public void ChangeTheme(bool forward)
@@ -331,14 +331,30 @@ public class SettingsService : BackgroundService
 
 	#region Navigation
 
-	internal static string GetModusUrl(GameSettings.Modus modus) => modus switch
+	internal static string GetModusUrl(GameSettings.Modus modus,
+		GameSettings.ZielAnsichtArt zielAnsicht = GameSettings.ZielAnsichtArt.Klassisch) => modus switch
 	{
 		GameSettings.Modus.Training => "/training",
 		GameSettings.Modus.BestOf => "/bestof",
 		GameSettings.Modus.Turnier => "/turnier",
-		GameSettings.Modus.Ziel or GameSettings.Modus.Ziel2=> "/ziel",
+		GameSettings.Modus.Ziel or GameSettings.Modus.Ziel2 => zielAnsicht == GameSettings.ZielAnsichtArt.Kacheln ? "/ziel-kacheln" : "/ziel",
 		_ => "/settings"
 	};
+
+	/// <summary>Seite fuer den aktuellen Modus samt Ziel-Ansicht.</summary>
+	internal static string GetModusUrl(Settings.Settings settings) =>
+		GetModusUrl(settings.Game.CurrentModus, settings.Game.ZielAnsicht);
+
+	/// <summary>Ziel-Ansicht umstellen (REST); im Modus Ziel/Ziel2 wechselt die Anzeige sofort die Seite.</summary>
+	public void SetZielAnsicht(GameSettings.ZielAnsichtArt ansicht)
+	{
+		if (CurrentSettings.Game.ZielAnsicht == ansicht) return;
+		CurrentSettings.Game.ZielAnsicht = ansicht;
+		RequestSaveSettings();
+		if (CurrentSettings.Game.CurrentModus is GameSettings.Modus.Ziel or GameSettings.Modus.Ziel2)
+			OnNavigationRequested?.Invoke(GetModusUrl(CurrentSettings));
+		NotifyChanged();
+	}
 
 	#endregion
 
@@ -832,7 +848,7 @@ public class SettingsService : BackgroundService
 		if (s.Game.CurrentModus != newModus)
 		{
 			s.Game.CurrentModus = newModus;
-			OnNavigationRequested?.Invoke(GetModusUrl(newModus));
+			OnNavigationRequested?.Invoke(GetModusUrl(newModus, CurrentSettings.Game.ZielAnsicht));
 		}
 
 		s.UI.CurrentRichtung = (UiSettings.Richtung)settings[3];
@@ -959,7 +975,7 @@ public class SettingsService : BackgroundService
 		var modus = CurrentSettings.Game.CurrentModus;
 		SettingsPageActive = false;
 
-		var url = GetModusUrl(modus);
+		var url = GetModusUrl(modus, CurrentSettings.Game.ZielAnsicht);
 		OnNavigationRequested?.Invoke(url);
 	}
 

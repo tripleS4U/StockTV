@@ -359,7 +359,7 @@ public class NetMqResponseService : BackgroundService, IDisposable
 					// Zurueck auf den aktiven Spielmodus - sonst bliebe die Anzeige auf einer
 					// Seite stehen, deren Bild es nicht mehr gibt.
 					_settingsService.RequestNavigation(
-						SettingsService.GetModusUrl(_settingsService.CurrentSettings.Game.CurrentModus));
+						SettingsService.GetModusUrl(_settingsService.CurrentSettings));
 					return Task.CompletedTask;
 				});
 

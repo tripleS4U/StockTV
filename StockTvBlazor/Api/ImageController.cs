@@ -92,7 +92,7 @@ public sealed class ImageController(
 		{
 			images.Clear();
 			settingsService.RequestNavigation(
-				SettingsService.GetModusUrl(settingsService.CurrentSettings.Game.CurrentModus));
+				SettingsService.GetModusUrl(settingsService.CurrentSettings));
 		});
 
 		return Accepted(new ActionResponse("Ok", "Bild wird entfernt, Anzeige kehrt zum Spiel zurueck.", null));

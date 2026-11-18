@@ -110,7 +110,7 @@ public class InputBase : ComponentBase, IDisposable
 			return;
 
 		var modus = SettingsService.CurrentSettings.Game.CurrentModus;
-		_internalUrl = SettingsService.GetModusUrl(modus);
+		_internalUrl = SettingsService.GetModusUrl(modus, SettingsService.CurrentSettings.Game.ZielAnsicht);
 	}
 
 	private void HandleUpdate()
