@@ -71,7 +71,8 @@ public sealed record MatchResultDto(
 	IReadOnlyList<GameDto> Games,
 	IReadOnlyList<BegegnungDto> Begegnungen);
 
-public sealed record ZielDisziplinDto(string Name, int Nummer, IReadOnlyList<int> Versuche, int Summe);
+/// <param name="NachZeit">Versuchsnummern (ab 1), die nach Ablauf der Wertungsuhr eingetragen wurden (IER: zaehlen nicht); sonst leer.</param>
+public sealed record ZielDisziplinDto(string Name, int Nummer, IReadOnlyList<int> Versuche, int Summe, IReadOnlyList<int>? NachZeit = null);
 
 /// <summary>Spielstand der Modi Ziel und Ziel2.</summary>
 public sealed record ZielResultDto(
@@ -147,10 +148,10 @@ public static class GameDtoFactory
 			[
 				// Reihenfolge und Nummern wie in ZielBewerb.SerializeJson - die Zentrale erwartet
 				// die vier Disziplinen in genau dieser Abfolge.
-				new ZielDisziplinDto("MassenVorne", 1, snapshot.MassenVorne, ziel.MassenVorneSumme),
-				new ZielDisziplinDto("Schiessen",   2, snapshot.Schiessen,   ziel.SchiessenSumme),
-				new ZielDisziplinDto("MassenSeite", 3, snapshot.MassenSeite, ziel.MassenSeiteSumme),
-				new ZielDisziplinDto("Kombinieren", 4, snapshot.Kombinieren, ziel.KombinierenSumme)
+				new ZielDisziplinDto("MassenVorne", 1, snapshot.MassenVorne, ziel.MassenVorneSumme, ziel.NachZeit(0)),
+				new ZielDisziplinDto("Schiessen",   2, snapshot.Schiessen,   ziel.SchiessenSumme, ziel.NachZeit(1)),
+				new ZielDisziplinDto("MassenSeite", 3, snapshot.MassenSeite, ziel.MassenSeiteSumme, ziel.NachZeit(2)),
+				new ZielDisziplinDto("Kombinieren", 4, snapshot.Kombinieren, ziel.KombinierenSumme, ziel.NachZeit(3))
 			]);
 	}
 

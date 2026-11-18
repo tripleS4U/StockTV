@@ -24,9 +24,9 @@
 				<div class="zk-kachel-name"><AutoFitText Text="@($"{k.Nummer} {k.Name}")" Min="8" /></div>
 				<div class="zk-kachel-summe"><AutoFitText Text="@k.Summe" Min="10" Numeric="true" Fill="80" /></div>
 				<div class="zk-kachel-punkte">
-					@foreach (var v in k.Versuche)
+					@foreach (var p in k.Punkte)
 					{
-						<span class="zk-punkt @(v ? "voll" : "")"></span>
+						<span class="zk-punkt @p"></span>
 					}
 				</div>
 			</div>

@@ -7,7 +7,8 @@ public class ZielService(
 	SettingsService settingsService,
 	ILogger<ZielService> logger,
 	NetMqPublisherService publisherService,
-	GameEventBroadcaster broadcaster) : IGameInputService
+	GameEventBroadcaster broadcaster,
+	ZielUhrService? uhr = null) : IGameInputService
 {
 	private readonly SettingsService _settingsService = settingsService;
 
@@ -153,7 +154,10 @@ public class ZielService(
 	{
 		if (_inputValue < 0) return;
 
-		if (!CurrentZielBewerb.AddVersuch(_inputValue))
+		// Steht die Wertungsuhr der Zentrale auf 0:00, wird der Versuch als „nach Zeit“ markiert (zaehlt laut IER nicht,
+		// die Zentrale entscheidet).
+		var nachZeit = uhr?.Anzeige().Abgelaufen == true;
+		if (!CurrentZielBewerb.AddVersuch(_inputValue, nachZeit))
 		{
 			_inputValue = -1;
 
